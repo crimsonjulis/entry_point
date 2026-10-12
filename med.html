@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Protocol: FUTURE DOCTOR 🩺</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Caveat:wght@500;700&family=Poppins:wght@400;600&display=swap');
+
+        :root {
+            --ecg-green: #0aff0a;
+            --bg-dark: #050508;
+            --rx-blue: #2c3e50;
+            --rx-red: #e74c3c;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            height: 100vh;
+            background: var(--bg-dark);
+            color: white;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            font-family: 'Poppins', sans-serif;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: background 1.5s ease;
+        }
+
+        /* --- SCREEN 1: PASSCODE AUTHENTICATION --- */
+        .passcode-wrapper {
+            display: flex; flex-direction: column; align-items: center;
+            width: 90%; max-width: 400px; z-index: 10;
+            background: rgba(10, 255, 10, 0.05);
+            padding: 35px 20px; border-radius: 15px;
+            border: 1px solid rgba(10, 255, 10, 0.2);
+            box-shadow: 0 0 20px rgba(10, 255, 10, 0.1);
+            backdrop-filter: blur(5px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            box-sizing: border-box;
+            margin-bottom: 5vh; /* Gives breathing room when mobile keyboard pops up */
+        }
+        .auth-title {
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--ecg-green); font-size: 1rem;
+            letter-spacing: 1px; margin-bottom: 25px;
+            text-align: center; line-height: 1.5;
+        }
+        .inputs { 
+            display: flex; gap: 6px; justify-content: center; width: 100%; 
+        }
+        .pin-box {
+            flex: 1; max-width: 45px; height: 50px; 
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--ecg-green); color: var(--ecg-green);
+            text-align: center; border-radius: 8px; 
+            outline: none; font-family: 'Poppins', sans-serif; 
+            transition: all 0.3s;
+            /* 16px+ prevents auto-zoom on iOS */
+            font-size: 18px; 
+            -webkit-appearance: none; margin: 0; padding: 0;
+        }
+        .pin-box:focus { box-shadow: 0 0 15px var(--ecg-green); background: rgba(10, 255, 10, 0.1); }
+        .status-msg { 
+            margin-top: 20px; font-weight: 600; font-size: 0.9rem;
+            color: var(--ecg-green); letter-spacing: 1px; height: 20px;
+        }
+        .shake { animation: shake 0.4s; border-color: #ff3333 !important; color: #ff3333 !important; }
+        .error-text { color: #ff3333; text-shadow: 0 0 10px #ff3333; }
+        @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-10px);} 75% {transform: translateX(10px);} }
+
+        /* --- SCREEN 2: TERMINAL LOGS --- */
+        .terminal-wrapper {
+            display: none; width: 90%; max-width: 400px;
+            opacity: 0; transform: translateY(20px); transition: all 0.8s ease;
+            font-family: 'Share Tech Mono', monospace; color: var(--ecg-green);
+            text-align: left; z-index: 10;
+            overflow-wrap: break-word;
+        }
+        .terminal-text { line-height: 1.8; font-size: 0.95rem; min-height: 180px; text-shadow: 0 0 5px rgba(10,255,10,0.4); }
+        .cursor { display: inline-block; width: 10px; height: 16px; background: var(--ecg-green); animation: blink 1s infinite; vertical-align: middle; }
+
+        .action-btn {
+            background: transparent; color: var(--ecg-green); border: 1px solid var(--ecg-green);
+            padding: 12px 0; width: 100%; margin-top: 20px; border-radius: 8px;
+            font-family: 'Share Tech Mono', monospace; font-size: 0.9rem; letter-spacing: 1px;
+            cursor: pointer; transition: all 0.3s; text-transform: uppercase;
+            display: none; 
+        }
+        .action-btn:active { background: rgba(10, 255, 10, 0.2); box-shadow: 0 0 20px var(--ecg-green); }
+
+        /* --- SCREEN 3: PRESCRIPTION PAD (PAGINATED) --- */
+        .rx-wrapper {
+            display: none; width: 92%; max-width: 450px;
+            opacity: 0; transform: translateY(50px); transition: all 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 20;
+        }
+        
+        .rx-pad {
+            background: #fff; color: var(--rx-blue);
+            border-radius: 12px; padding: 25px 20px 20px 20px; 
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+            box-sizing: border-box;
+            
+            /* Responsive height with internal scrolling for mobile */
+            height: auto; 
+            max-height: 85vh; 
+            overflow-y: auto;
+            overflow-x: hidden;
+            
+            /* Combined background handles both the blue lines and red margin beautifully */
+            background-image: 
+                linear-gradient(90deg, transparent 18px, rgba(231, 76, 60, 0.4) 18px, rgba(231, 76, 60, 0.4) 20px, transparent 20px),
+                repeating-linear-gradient(transparent, transparent 29px, #e8f0f2 30px);
+            background-position: 0 0, 0 45px;
+            background-attachment: local; /* Ensures lines scroll with the text */
+            
+            /* Hide scrollbar for a seamless look */
+            scrollbar-width: none; 
+            -ms-overflow-style: none;
+        }
+        .rx-pad::-webkit-scrollbar { display: none; }
+
+        .rx-header {
+            display: flex; justify-content: space-between; align-items: flex-end;
+            border-bottom: 2px solid var(--rx-blue); padding-bottom: 10px; margin-bottom: 15px;
+            position: relative; z-index: 2; background: #fff;
+        }
+        .rx-logo { font-size: 2rem; font-weight: bold; font-family: 'Share Tech Mono', serif; color: var(--rx-blue); line-height: 1; margin-left: 10px; }
+        .rx-page-indicator { font-family: 'Poppins', sans-serif; font-size: 0.8rem; color: #7f8c8d; font-weight: 600; }
+        
+        .rx-body { 
+            padding-left: 15px; font-family: 'Caveat', cursive; 
+            font-size: 1.25rem; /* Scaled down slightly so words fit perfectly */
+            line-height: 1.5; color: #2c3e50; 
+            position: relative; z-index: 2;
+            overflow-wrap: break-word;
+        }
+        .rx-body p { margin-top: 0; margin-bottom: 15px; }
+
+        /* Medical Block Styling */
+        .med-block {
+            background: rgba(236, 240, 241, 0.9); /* More opaque to sit over the lines */
+            border: 1px dashed #bdc3c7; border-radius: 8px;
+            padding: 12px; margin-top: 15px; margin-bottom: 15px;
+            font-family: 'Poppins', sans-serif; font-size: 0.75rem; line-height: 1.5;
+            color: #34495e;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .med-block strong { color: var(--rx-red); font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; letter-spacing: 1px;}
+        
+        .ps-text { font-family: 'Caveat', cursive; font-size: 1.3rem; color: #7f8c8d; text-align: center; margin-top: 10px; line-height: 1.4;}
+
+        .rx-footer {
+            text-align: right; font-family: 'Caveat', cursive; font-size: 1.5rem;
+            border-top: 2px solid var(--rx-blue); padding-top: 10px; margin-top: 20px;
+            background: #fff; position: relative; z-index: 2; color: var(--rx-red); font-weight: bold;
+        }
+
+        /* Pagination Buttons */
+        .page-nav {
+            display: flex; justify-content: center; margin-top: 15px;
+            position: relative; z-index: 2;
+        }
+        .nav-btn {
+            background: var(--rx-blue); color: white; border: none;
+            padding: 10px 20px; border-radius: 20px;
+            font-family: 'Poppins', sans-serif; font-size: 0.85rem; font-weight: 600;
+            cursor: pointer; box-shadow: 0 4px 10px rgba(44, 62, 80, 0.2);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .nav-btn:active { transform: scale(0.95); }
+
+        #rx-page-2 { display: none; }
+        @keyframes blink { 0%, 100% {opacity: 1;} 50% {opacity: 0;} }
+
+    </style>
+</head>
+<body>
+
+    <!-- SCREEN 1: PASSCODE -->
+    <div class="passcode-wrapper" id="passcode-ui">
+        <div class="auth-title">RESTRICTED MEDICAL DATA<br>ENTER CLEARANCE CODE</div>
+        <div class="inputs">
+            <input type="tel" class="pin-box" maxlength="1">
+            <input type="tel" class="pin-box" maxlength="1">
+            <input type="tel" class="pin-box" maxlength="1">
+            <input type="tel" class="pin-box" maxlength="1">
+            <input type="tel" class="pin-box" maxlength="1">
+            <input type="tel" class="pin-box" maxlength="1">
+        </div>
+        <div class="status-msg" id="msg-area"></div>
+    </div>
+
+    <!-- SCREEN 2: TERMINAL LOGS -->
+    <div class="terminal-wrapper" id="terminal">
+        <div class="terminal-text" id="terminal-text"></div>
+        <button class="action-btn" id="term-btn-1" onclick="startTerminalPart2()">NEXT LOG ></button>
+        <button class="action-btn" id="term-btn-2" onclick="revealPrescription()">OPEN PRESCRIPTION ➞</button>
+    </div>
+
+    <!-- SCREEN 3: PRESCRIPTION PAD -->
+    <div class="rx-wrapper" id="rx-pad">
+        <div class="rx-pad" id="rx-pad-inner">
+            <div class="rx-header">
+                <div class="rx-logo">Rx</div>
+                <div class="rx-page-indicator" id="page-indicator">Page 1 of 2</div>
+            </div>
+            
+            <!-- PAGE 1 -->
+            <div id="rx-page-1">
+                <div class="rx-body">
+                    <p>Myy dearr Chikluu,</p>
+                    <p>Look at you. 🥹<br>
+                    After all the waiting, the uncertainties, and the hard days, here u are. U kept going, even when the journey wasn't easy.</p>
+                    
+                    <p>I hope u realise just how much this moment says about u. Not just ur hard work, but ur courage, ur patience, and the strength it took to keep believing.<br>
+                    And now, look how far you've come !!!</p>
+                    
+                    <p>Your white coat is gonna look justt soo osmmly perfectt on you. But what will make it even moree lovelyy is the heart of the person wearing it. ❤️</p>
+                </div>
+                <div class="page-nav">
+                    <button class="nav-btn" onclick="flipPage(2)">Next Page ➞</button>
+                </div>
+            </div>
+
+            <!-- PAGE 2 -->
+            <div id="rx-page-2">
+                <div class="rx-body">
+                    <p>I'm sooo proud of uu. More than these lil words can ever explain. Plss never forget to give yourself credit for how far you've come. This is only the beginning, and there's so much beautifull life waiting for you beyond this moment. ❤️</p>
+                    
+                    <p>I hope you love the cakeee! 🎂 Hehe... It's just a tiny little celebration for the beginning of such a grand journey !</p>
+                    
+                    <p>I'm rooting for you. Always !!❤️</p>
+
+                    <div class="med-block">
+                        <strong>DOSAGE:</strong> A lil self-belief, but every single day!<br><br>
+                        <strong>REFILLS:</strong> Unlimited!<br><br>
+                        <strong>SIDE EFFECTS:</strong> Random happy tears and uncontrollable smiling!!<br><br>
+                        <strong>INSTRUCTION:</strong> Never forget how far you've come, and never underestimate how far you can go.
+                    </div>
+
+                    <div class="ps-text">
+                        P.S. Your future self is already so proud of uu. Keep making her proud. 🩺❤️
+                    </div>
+                </div>
+                <div class="rx-footer">
+                    Prescribed by: Your chipduu ❤️
+                </div>
+                <div class="page-nav">
+                    <button class="nav-btn" onclick="flipPage(1)">⬅ Back</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const CORRECT_CODE = "831224";
+        const inputs = document.querySelectorAll('.pin-box');
+        const msgArea = document.getElementById('msg-area');
+        const passcodeUI = document.getElementById('passcode-ui');
+        const terminalUI = document.getElementById('terminal');
+        const rxUI = document.getElementById('rx-pad');
+
+        inputs.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/[^0-9]/g, ''); 
+                if (e.target.value !== '' && index < 5) {
+                    inputs[index + 1].focus();
+                }
+                checkCode();
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && e.target.value === '' && index > 0) {
+                    inputs[index - 1].focus();
+                    inputs[index - 1].value = ''; 
+                }
+            });
+        });
+
+        function checkCode() {
+            let code = ""; 
+            inputs.forEach(input => code += input.value);
+            if(code.length < 6) return; 
+
+            inputs.forEach(input => input.blur());
+
+            if (code === CORRECT_CODE) {
+                msgArea.style.color = "var(--ecg-green)"; 
+                msgArea.innerText = "AUTHENTICATION SUCCESSFUL";
+                passcodeUI.style.borderColor = "var(--ecg-green)"; 
+                inputs.forEach(i => i.style.borderColor = "var(--ecg-green)");
+                
+                setTimeout(() => {
+                    passcodeUI.style.transform = 'scale(0.9)';
+                    passcodeUI.style.opacity = '0';
+                    setTimeout(() => {
+                        passcodeUI.style.display = 'none';
+                        terminalUI.style.display = 'block';
+                        setTimeout(() => terminalUI.style.opacity = '1', 50);
+                        startTerminalPart1();
+                    }, 500);
+                }, 800);
+            } else {
+                msgArea.classList.add('error-text'); 
+                msgArea.innerText = "ACCESS DENIED";
+                passcodeUI.classList.add('shake');
+                inputs.forEach(input => { 
+                    input.value = ""; 
+                    input.classList.add('shake'); 
+                });
+                setTimeout(() => { 
+                    passcodeUI.classList.remove('shake'); 
+                    inputs.forEach(i => i.classList.remove('shake')); 
+                    inputs[0].focus();
+                }, 500);
+            }
+        }
+
+        const termPart1 = ">> INITIATING FUTURE DOCTOR SCAN...\n>> REVIEWING THE JOURNEY SO FAR...\n>> RESILIENCE LEVELS: EXCEPTIONAL.\n>> DETERMINATION: STRONGER THAN EVER.";
+        const termPart2 = ">> POTENTIAL: ABSOLUTELY LIMITLESS.\n>> THE WORLD IS GOING TO BE LUCKY TO HAVE YOU, DOCTOR. 🩺\n>> STATUS UPDATED: ELITE MEDICAL SCHOLAR INBOUND...";
+        
+        let termI = 0;
+        let currentTermText = "";
+
+        function typeTerminal(text, buttonIdToShow) {
+            termI = 0;
+            currentTermText = text;
+            const el = document.getElementById('terminal-text');
+            el.innerHTML = '<span class="cursor"></span>'; 
+            
+            function type() {
+                if (termI < currentTermText.length) {
+                    const char = currentTermText.charAt(termI);
+                    if(char === '\n') el.lastChild.insertAdjacentHTML('beforebegin', '<br><br>');
+                    else el.lastChild.insertAdjacentText('beforebegin', char);
+                    termI++;
+                    setTimeout(type, 45); 
+                } else {
+                    document.getElementById(buttonIdToShow).style.display = 'block';
+                }
+            }
+            type();
+        }
+
+        function startTerminalPart1() {
+            typeTerminal(termPart1, 'term-btn-1');
+        }
+
+        function startTerminalPart2() {
+            document.getElementById('term-btn-1').style.display = 'none';
+            typeTerminal(termPart2, 'term-btn-2');
+        }
+
+        function revealPrescription() {
+            terminalUI.style.opacity = '0';
+            document.body.style.background = "#eef2f3"; 
+            
+            setTimeout(() => {
+                terminalUI.style.display = 'none';
+                rxUI.style.display = 'block';
+                setTimeout(() => {
+                    rxUI.style.opacity = '1';
+                    rxUI.style.transform = 'translateY(0)';
+                }, 50);
+            }, 800);
+        }
+
+        function flipPage(pageNum) {
+            const padInner = document.getElementById('rx-pad-inner');
+            if(pageNum === 1) {
+                document.getElementById('rx-page-2').style.display = 'none';
+                document.getElementById('rx-page-1').style.display = 'block';
+                document.getElementById('page-indicator').innerText = "Page 1 of 2";
+            } else {
+                document.getElementById('rx-page-1').style.display = 'none';
+                document.getElementById('rx-page-2').style.display = 'block';
+                document.getElementById('page-indicator').innerText = "Page 2 of 2";
+            }
+            // Scrolls back to top automatically when a page is flipped
+            padInner.scrollTop = 0; 
+        }
+    </script>
+</body>
+</html>
